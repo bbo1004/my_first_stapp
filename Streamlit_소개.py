@@ -1,175 +1,145 @@
 import streamlit as st # streamlit 라이브러리 임포트
 st.title('지점 매출 분석 대시보드')
-# app.py -- 지점 매출 분석 대시보드 (화면)
-import streamlit as st
-from utils import (total_sales, average_sales, to_grade, grade_to_incentive,
-                   quarter_average, quarter_top, grade_distribution,
-                   rank_list, achievement_rate)
 
-st.set_page_config(page_title="매출 분석 대시보드", layout="wide")
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>지점 매출 분석 대시보드</title>
 
-# 상단 배너 이미지 (banner.png 파일을 함께 둘 것)
-st.image("banner.png", use_container_width=True)
-st.title("지점 매출 분석 대시보드")
+<style>
+body{
+    font-family: Arial, sans-serif;
+    margin:0;
+    background:#f5f5f5;
+}
 
-QUARTERS = ["1분기", "2분기", "3분기"]
+header{
+    text-align:center;
+    background:white;
+    padding:20px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
 
-# 처음 실행 시 샘플 지점 데이터를 세션에 넣어 둔다. (다시 실행돼도 유지) / 단위: 백만원
-if "branches" not in st.session_state:
-    st.session_state.branches = [
-        {"지점": "강남점", "1분기": 150, "2분기": 130, "3분기": 140},
-        {"지점": "홍대점", "1분기": 90,  "2분기": 110, "3분기": 100},
-        {"지점": "판교점", "1분기": 120, "2분기": 100, "3분기": 95},
-        {"지점": "부산점", "1분기": 80,  "2분기": 90,  "3분기": 85},
-        {"지점": "대전점", "1분기": 50,  "2분기": 55,  "3분기": 45},
-    ]
+header img{
+    width:100%;
+    max-height:300px;
+    object-fit:cover;
+}
 
-branches = st.session_state.branches
+.container{
+    max-width:1200px;
+    margin:auto;
+    padding:20px;
+}
 
-tab1, tab2, tab3, tab4 = st.tabs(["지점 입력", "지점별 실적", "분기별 통계", "순위 & 등급 분포"])
+.card{
+    background:white;
+    padding:20px;
+    margin-bottom:20px;
+    border-radius:10px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
 
-# --- Tab 1 : 지점 추가 ---
-with tab1:
-    st.header("지점 추가")
-    name = st.text_input("지점명")
-    q1 = st.number_input("1분기 매출", 0, 1000, 0)
-    q2 = st.number_input("2분기 매출", 0, 1000, 0)
-    q3 = st.number_input("3분기 매출", 0, 1000, 0)
-    if st.button("추가"):
-        branches.append({"지점": name, "1분기": q1, "2분기": q2, "3분기": q3})
-        st.success(f"{name} 지점을 추가했습니다.")
+table{
+    width:100%;
+    border-collapse:collapse;
+}
 
-# --- 상단 요약 지표 ---
-col1, col2, col3 = st.columns(3)
-col1.metric("지점 수", f"{len(branches)}개")
+th,td{
+    border:1px solid #ddd;
+    padding:10px;
+    text-align:center;
+}
 
-avgs = [average_sales(b) for b in branches]
-overall = sum(avgs) / len(avgs)
-col2.metric("전체 평균(분기)", round(overall, 2))
-col3.metric("목표 달성률", f"{achievement_rate(branches):.1f}%")
+th{
+    background:#4CAF50;
+    color:white;
+}
 
-# --- Tab 2 : 지점별 실적표 ---
-with tab2:
-    st.header("지점별 실적표")
-    table = []
-    for b in branches:
-        avg = average_sales(b)
-        grade = to_grade(avg)
-        table.append({
-            "지점": b["지점"],
-            "1분기": b["1분기"], "2분기": b["2분기"], "3분기": b["3분기"],
-            "총매출": total_sales(b),
-            "평균": round(avg, 2),
-            "등급": grade,
-            "성과급률": grade_to_incentive(grade),
-        })
-    st.table(table)
+.metric{
+    display:flex;
+    gap:20px;
+}
 
-# --- Tab 3 : 분기별 통계 ---
-with tab3:
-    st.header("분기별 통계")
-    cols = st.columns(3)
-    for i in range(len(QUARTERS)):
-        quarter = QUARTERS[i]
-        with cols[i]:
-            st.subheader(quarter)
-            st.write(f"평균: {quarter_average(branches, quarter)}")
-            st.write(f"최고: {quarter_top(branches, quarter)}")
+.metric-box{
+    flex:1;
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    text-align:center;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+</style>
+</head>
 
-    chart_data = []
-    for quarter in QUARTERS:
-        chart_data.append({"분기": quarter, "평균": quarter_average(branches, quarter)})
-    st.bar_chart(chart_data, x="분기", y="평균", horizontal=True, height=400)
+<body>
 
-# --- Tab 4 : 순위 & 등급 분포 ---
-with tab4:
-    st.header("매출 순위")
-    ranked = rank_list(branches)
-    rank_table = []
-    rank = 1
-    for b in ranked:
-        rank_table.append({"순위": rank, "지점": b["지점"], "총매출": total_sales(b)})
-        rank = rank + 1
-    st.table(rank_table)
+<header>
+    <img src="banner.png" alt="배너">
+    <h1>지점 매출 분석 대시보드</h1>
+</header>
 
-    st.header("등급 분포")
-    dist = grade_distribution(branches)
-    dist_data = [{"등급": g, "지점수": dist[g]} for g in ["A", "B", "C", "D", "F"]]
-    st.bar_chart(dist_data, x="등급", y="지점수", horizontal=True, height=400)
+<div class="container">
 
-img = Image.open('python.png') 
-st.image(img, width=300)
-# utils.py -- 매출 분석 함수 모음
-#   (함수 이름과 매개변수는 바꾸지 마세요. 내용만 고치세요.)
-#   ※ 각 함수가 정확히 어떻게 동작해야 하는지는 '문제지(정상 동작 명세)'를 따르세요.
+    <div class="metric">
+        <div class="metric-box">
+            <h3>지점 수</h3>
+            <p>5개</p>
+        </div>
 
-INCENTIVE_TABLE = {"A": 4.0, "B": 4.0, "C": 3.0, "D": 2.0, "F": 0.0}
+        <div class="metric-box">
+            <h3>전체 평균</h3>
+            <p>96.0</p>
+        </div>
 
+        <div class="metric-box">
+            <h3>목표 달성률</h3>
+            <p>60%</p>
+        </div>
+    </div>
 
-def total_sales(branch):
-    """지점 총매출."""
-    return branch["1분기"] + branch["2분기"] + branch["3분기"]
+    <div class="card">
+        <h2>지점별 실적</h2>
 
+        <table>
+            <tr>
+                <th>지점</th>
+                <th>1분기</th>
+                <th>2분기</th>
+                <th>3분기</th>
+                <th>총매출</th>
+            </tr>
 
-def average_sales(branch):
-    """지점 평균."""
-    return total_sales(branch) / 3
+            <tr>
+                <td>강남점</td>
+                <td>150</td>
+                <td>130</td>
+                <td>140</td>
+                <td>420</td>
+            </tr>
 
+            <tr>
+                <td>홍대점</td>
+                <td>90</td>
+                <td>110</td>
+                <td>100</td>
+                <td>300</td>
+            </tr>
+        </table>
+    </div>
 
-def to_grade(avg):
-    """평균을 등급으로 변환."""
-    if avg >= 120:
-        return "A"
-    elif avg >= 100:
-        return "B"
-    elif avg >= 80:
-        return "C"
-    elif avg >= 60:
-        return "D"
-    else:
-        return "F"
+    <div class="card">
+        <h2>프로젝트 소개</h2>
+        <p>
+            본 프로젝트는 여러 지점의 분기별 매출 데이터를 분석하여
+            평균 매출, 등급, 순위, 목표 달성률을 시각적으로 제공하는
+            경영 분석 대시보드입니다.
+        </p>
+    </div>
 
+</div>
 
-def grade_to_incentive(grade):
-    """등급을 성과급률로 변환."""
-    return INCENTIVE_TABLE[grade]
-
-
-def quarter_average(branches, quarter):
-    """분기 평균."""
-    total = 0
-    for b in branches:
-        total += b[quarter]
-    return total / len(branches)
-
-
-def quarter_top(branches, quarter):
-    """분기 최고."""
-    top = 0
-    for b in branches:
-        if b[quarter] > top:
-            top = b[quarter]
-    return top
-
-
-def grade_distribution(branches):
-    """등급별 지점 수."""
-    dist = {"A": 0, "B": 0, "C": 0, "D": 0, "F": 0}
-    for b in branches:
-        g = to_grade(average_sales(b))
-        dist[g] += 1
-    return dist
-
-
-def rank_list(branches):
-    """총매출 기준 정렬."""
-    return sorted(branches, key=lambda x: total_sales(x), reverse=True)
-
-
-def achievement_rate(branches, target=90):
-    """목표 달성 비율(%)."""
-    count = 0
-    for b in branches:
-        if average_sales(b) >= target:
-            count += 1
-    return count / len(branches) * 100
+</body>
+</html>
